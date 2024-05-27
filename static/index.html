@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Interactive Taxonomy Bubbles</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        body {
+            overflow: hidden;
+            margin: 0;
+            font-family: sans-serif;
+        }
+        .bubble {
+            fill-opacity: 0.6;
+            stroke: #666;
+            stroke-width: 1.5px;
+        }
+        .node circle, .node rect, .node polygon {
+            stroke: #000;
+            stroke-width: 1.5px;
+        }
+        line {
+            stroke: #999;
+            stroke-opacity: 0.6;
+        }
+        .label {
+            font-size: 16px;
+            font-style: italic;           
+            text-anchor: middle;
+        }
+        text {
+            font-size: 14px;
+            text-anchor: middle;
+            pointer-events: none;
+        }
+        .legend {
+            font-size: 12px;
+        }
+
+        .tooltip {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: left;
+            width: 200px;
+            height: auto;
+            padding: 10px;
+            font: 14px sans-serif;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #d3d3d3;
+            border-radius: 5px;
+            pointer-events: auto; /* Enable pointer events */
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .tooltip img {
+            float: left;
+            max-width: 100%;
+            height: auto;
+            opacity: 0.4; /* Light background image */
+        }
+        .tooltip-content {
+            position: relative;
+            z-index: 1;
+        }
+        .audio-button {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 5px 10px;
+            background: #007bff;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        const api_endpoint = "";
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const baseRadius = 50;
+        const scaleFactor = 2;
+
+        const svg = d3.select("body").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        const g = svg.append("g");
+
+        // Define taxonomy groups
+        const taxonomies = [
+            "philosophy", "economics", "law", "science and technology", "politics",
+            "military", "religion", "education", "culture"
+        ];
+
+        initLengends();
+    
+        function initLengends(){
+
+            // Create legend for etymology
+            const legendData = [
+                { label: 'Hanzi-Western-Loaned', shape: 'rect' },
+                { label: 'Sino-Western-Loaned', shape: 'polygon' },
+                { label: 'Native', shape: 'circle' }
+            ];
+
+            const legend = g.selectAll(".legend")
+                .data(legendData)
+                .enter().append("g")
+                .attr("class", "legend")
+                .attr("transform", (d, i) => `translate(20, ${20 + i * 20})`);
+
+            legend.append("text")
+                .attr("x", 80)
+                .attr("y", 9)
+                .attr("dy", ".35em")
+                .text(d => d.label);
+
+            legend.each(function(d) {
+                if (d.shape === 'rect') {
+                    d3.select(this).append("rect")
+                        .attr("width", 10)
+                        .attr("height", 10)
+                        .attr("x", 0)
+                        .attr("y", 0)
+                        .style("fill", "#777");
+                } else if (d.shape === 'polygon') {
+                    d3.select(this).append("polygon")
+                        .attr("points", "0,10 5,0 10,10")
+                        .style("fill", "#777");
+                } else {
+                    d3.select(this).append("circle")
+                        .attr("r", 5)
+                        .attr("cx", 5)
+                        .attr("cy", 5)
+                        .style("fill", "#777");
+                    }
+                });
+        }
+
+        // Fetch data from API "/nodes"
+        fetch(api_endpoint + "/nodes")
+            .then(response => response.json())
+            .then(nodes => {
+                fetch(api_endpoint + "/links")
+                    .then(response => response.json())
+                    .then(links => {
+                        initializeVisualization(nodes, links);
+                    });
+                });
+
+        function initializeVisualization(nodes, links) {
+            const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+            // Calculate dynamic radius for each group
+            const groupCounts = {};
+            nodes.forEach(node => {
+                groupCounts[node.group] = (groupCounts[node.group] || 0) + 1;
+            });
+
+            const groups = taxonomies.map((d, i) => {
+                const count = groupCounts[d.toLowerCase()] || 0;
+                return {
+                    id: d,
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    radius: baseRadius + count * scaleFactor
+                };
+            });
+
+            // Initialize nodes within their respective bubbles
+            nodes.forEach(node => {
+                const parent = groups.find(group => group.id.toLowerCase() === node.group);
+                if (parent) {
+                    node.x = parent.x + (Math.random() - 0.5) * (parent.radius / 2);
+                    node.y = parent.y + (Math.random() - 0.5) * (parent.radius / 2);
+                    node.vx = 0;
+                    node.vy = 0;
+                }
+            });
+
+            // Custom force to keep nodes inside their parent bubbles
+            function containmentForce() {
+                for (let i = 0, n = nodes.length; i < n; ++i) {
+                    const node = nodes[i];
+                    const parent = groups.find(group => group.id.toLowerCase() === node.group);
+                    if (parent) {
+                        const dx = node.x - parent.x;
+                        const dy = node.y - parent.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance > parent.radius) {
+                            const angle = Math.atan2(dy, dx);
+                            node.x = parent.x + (Math.random() - 0.5) * (parent.radius / 2);
+                            node.y = parent.y + (Math.random() - 0.5) * (parent.radius / 2);
+                        }
+                    }
+                }
+            }
+
+            // Create links between nodes
+            const linkElements = g.selectAll(".link")
+                .data(links)
+                .enter().append("line")
+                .attr("class", "link")
+                .style("stroke-width", d => Math.sqrt(d.value));
+
+            // Drag handler for bubbles and nodes
+            const drag = d3.drag()
+                .on("start", function(event, d) {
+                    d.startX = event.x;
+                    d.startY = event.y;
+                    if (!event.active) simulation.alphaTarget(0.3).restart();
+                    d.fx = d.x;
+                    d.fy = d.y;
+                })
+                .on("drag", function(event, d) {
+                    d.fx = event.x;
+                    d.fy = event.y;
+                })
+                .on("end", function(event, d) {
+                    d.endX = event.x;
+                    d.endY = event.y;
+                    if (!event.active) simulation.alphaTarget(0);
+                    d.fx = null;
+                    d.fy = null;
+                    const dx = d.endX - d.startX;
+                    const dy = d.endY - d.startY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < 15) {
+                        // Handle click event
+                        showTooltip(event, d);
+                    }
+                });
+
+            // Append circles for each taxonomy group
+            const bubbles = g.selectAll(".bubble")
+                .data(groups)
+                .enter().append("circle")
+                .attr("class", "bubble")
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y)
+                .attr("r", d => d.radius)
+                .style("fill", (d, i) => color(i))
+                .call(drag);
+
+            // Append labels for each bubble
+            const labels = g.selectAll(".label")
+                .data(groups)
+                .enter().append("text")
+                .attr("class", "label")
+                .attr("x", d => d.x)
+                .attr("y", d => d.y)
+                .text(d => d.id);
+
+            // Append nodes
+            const nodeElements = g.selectAll(".node")
+                .data(nodes)
+                .enter().append("g")
+                .attr("class", "node")
+                .call(drag);
+
+            nodeElements.each(function(d) {
+                if (d.etymology === 'hanzi-western-loaned') {
+                    d3.select(this).append("rect")
+                        .attr("width", 10)
+                        .attr("height", 10)
+                        .attr("x", -5)
+                        .attr("y", -5)
+                        .style("fill", color(taxonomies.indexOf(d.group)));
+                } else if (d.etymology === 'sino-western-loaned') {
+                    d3.select(this).append("polygon")
+                        .attr("points", "-5,5 0,-5 5,5")
+                        .style("fill", color(taxonomies.indexOf(d.group)));
+                } else {
+                    d3.select(this).append("circle")
+                        .attr("r", 5)
+                        .style("fill", color(taxonomies.indexOf(d.group)));
+                }
+            });
+
+            nodeElements.append("text")
+                .attr("dx", 22)
+                .attr("dy", ".35em")
+                .text(d => d.id);
+
+            // Use force simulation to manage bubble and node positions
+            const simulation = d3.forceSimulation(nodes.concat(groups))
+                .force("link", d3.forceLink(links).id(d => d.id).distance(100))
+                .force("collide", d3.forceCollide().radius(d => d.radius ? d.radius + 10 : 10).strength(0.1))
+                .force("x", d3.forceX().strength(0.1).x(width / 2))
+                .force("y", d3.forceY().strength(0.1).y(height / 2))
+                .alphaDecay(0.5)  // Increase decay rate to stabilize faster
+                .on("tick", () => {
+                    containmentForce();
+
+                    bubbles.attr("cx", d => d.x)
+                        .attr("cy", d => d.y);
+                    labels.attr("x", d => d.x)
+                        .attr("y", d => d.y);
+                    nodeElements.attr("transform", d => `translate(${d.x},${d.y})`);
+                    linkElements
+                        .attr("x1", d => d.source.x)
+                        .attr("y1", d => d.source.y)
+                        .attr("x2", d => d.target.x)
+                        .attr("y2", d => d.target.y);
+                });
+
+            // Tooltip for node information
+            const tooltip = d3.select("body").append("div")
+                .attr("class", "tooltip");
+
+            function showTooltip(event, d) {
+                tooltip.transition().duration(200).style("opacity", .9);
+                tooltip.html(`
+                    <div class="tooltip-content">
+                        <img src="/static/illustration/${d.jp}.webp" alt="${d.jp}" />
+                        <h1>${d.id}</h1><br>
+                        <em>${d.jp}</em><br>
+                        <em>${d.en}</em><br>
+                        <button class="audio-button" onclick="document.getElementById('${d.jp}-audio').play();console.log('button clicked')">▶ Play</button>
+                        <audio id="${d.jp}-audio" src="/static/speech/${d.jp}.mp3"></audio>
+                        <br>Group: ${d.group}<br>
+                        Etymology: ${d.etymology}
+                    </div>
+                `).style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
+            }
+
+            nodeElements.on("mouseover", function(event, d) {
+                d3.select(this).select("text").style("font-size", "28px");
+            }).on("mouseout", function(event, d) {
+                d3.select(this).select("text").style("font-size", "14px");
+            });
+        }
+    </script>
+</body>
+</html>

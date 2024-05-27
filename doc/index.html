@@ -1,0 +1,43 @@
+# Project Wkan Gogen: Using LLMs to Research Chinese Language Terms Originated from Japanese
+
+## Introduction
+This project, "Wakan Gogen"("和漢語源"),  aims to explore the linguistic influences and correlations between Japanese and Chinese, specifically focusing on terms in Chinese that originated from Japanese. By utilizing Large Language Models (LLMs), this research will categorize terms, analyze their relationships, and provide an interactive way to visualize connections and clusters of these terms.
+
+## Problem Statement
+Traditional language models often struggle with complex and multifaceted tasks when presented in a single query. This project addresses the need to break down tasks into more manageable, atomic operations that can be systematically processed and expanded upon.
+
+## Proposed Solution
+Implement a system using LLMs that processes individual language terms in an atomic fashion. For each term, the model will determine its taxonomy, related terms, and additional metadata. This granular approach facilitates better accuracy and allows for building a comprehensive relational database of terms, which can then be visualized and interactively explored.
+
+### Example Task
+Instead of categorizing multiple terms at once, the model will handle one term per query:
+```
+Categorize the term "必要" into the following categories: [list of taxonomies]
+```
+Expected output:
+```
+{"term": "必要", "Japanese": "hitsuyō", "taxonomy": ["Philosophy", "Daily Life"], "related": ["要素", "要點", "要求", "保障", "方針"]}
+```
+
+### Benefits
+- **Accuracy**: Breaking down tasks into simpler units improves the model's accuracy.
+- **Scalability**: The approach allows for incremental updates to the database as new terms are analyzed.
+- **Interactivity**: The visualization of data helps in understanding complex relationships and promotes user engagement.
+
+## Process Overview
+
+1. **Initial Data Collection**: Compile an extensive list of Chinese terms with origins in Japanese language.
+2. **Taxonomy Identification**: Use LLMs to determine major taxonomies applicable to these terms.
+3. **Atomical Analysis**: Analyze each term to establish its categorization, related terms, and other linguistic features.
+4. **Database Construction**: Populate a database with the analyzed data, ensuring structure suitable for query and visualization.
+5. **Visualization Development**: Create dynamic visualizations that map the relationships and clusters among the terms.
+6. **Open Platform Development**: Develop a web platform that allows users to explore the term relationships, learn about their origins, and contribute.
+
+## Tools and Technologies
+- **LLMs**: OpenAI's GPT for generating linguistic data and insights.
+- **Database Management**: Use a relational database like PostgreSQL for structured data storage.
+- **Visualization Tools**: Utilize D3.js or a similar library for creating interactive and dynamic visual graphs.
+- **Web Development**: Implement the interactive platform using frameworks like React for frontend and Node.js for backend.
+
+## Conclusion
+This project leverages the capabilities of LLMs to deepen the understanding of linguistic ties between Japanese and Chinese. By making the research data accessible and interactive, it aims to engage a broader audience and foster a greater appreciation of linguistic studies.
