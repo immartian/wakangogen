@@ -30,7 +30,8 @@ Navigate to `http://127.0.0.1:8000` to see the application running.
 #### 2. Run the Docker Container
 
 ```sh
-sudo docker run --env-file .env -p 8000:8000 wokangogen
+sudo docker build -t wakangogen .
+sudo docker run --env-file .env -p 8000:8000 wakangogen
 ```
 ---
 

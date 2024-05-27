@@ -87,6 +87,17 @@
             .attr("width", width)
             .attr("height", height);
 
+        // Add a big title as watermark in the middle center of the screen background
+        svg.append("text")
+            .attr("class", "title")
+            .attr("x", width / 2)
+            .attr("y", height / 2)
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "middle")
+            .style("font-size", "100px")
+            .style("opacity", 0.1)
+            .text("和漢語源 (Wakan Gogen)");
+
         const g = svg.append("g");
 
         // Define taxonomy groups
@@ -307,6 +318,7 @@
                         .attr("y2", d => d.target.y);
                 });
 
+
             // Tooltip for node information
             const tooltip = d3.select("body").append("div")
                 .attr("class", "tooltip");
@@ -315,11 +327,10 @@
                 tooltip.transition().duration(200).style("opacity", .9);
                 tooltip.html(`
                     <div class="tooltip-content">
-                        <img src="/static/illustration/${d.jp}.webp" alt="${d.jp}" />
+                        <img src="/static/illustration/${d.jp}.webp" alt="${d.jp}" onerror="this.onerror=null; this.src='/static/illustration/default.webp';" />
                         <h1>${d.id}</h1><br>
-                        <em>${d.jp}</em><br>
+                        <h2 onclick="document.getElementById('${d.jp}-audio').play();console.log('button clicked')">🗣️ ${d.jp}</h2><br>
                         <em>${d.en}</em><br>
-                        <button class="audio-button" onclick="document.getElementById('${d.jp}-audio').play();console.log('button clicked')">▶ Play</button>
                         <audio id="${d.jp}-audio" src="/static/speech/${d.jp}.mp3"></audio>
                         <br>Group: ${d.group}<br>
                         Etymology: ${d.etymology}
